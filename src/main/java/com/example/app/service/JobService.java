@@ -42,7 +42,7 @@ public class JobService {
     private volatile boolean isJobRunning = false;
 
     // Run every 10 seconds
-    @Scheduled(fixedDelay = 20000)
+    @Scheduled(fixedDelay = 10000)
     public void processFiles() {
         if (schedulerEnabled && !isJobRunning) {
             logger.info("Starting to process: {}",  LocalDateTime.now());
@@ -64,7 +64,7 @@ public class JobService {
     public boolean startJob(){
         isJobRunning = false;
         try {
-            logger.info("Source Directory " + sourceDirectory);
+            logger.info("Source Directory {}", sourceDirectory);
             File file = FileMonitoringService.getFile(sourceDirectory);
             if (file != null) {
                 logger.info("File : {}", file.getName());
@@ -79,7 +79,6 @@ public class JobService {
                     if (jobExecution.isRunning()) {
                         isJobRunning = true;
                     } else {
-                        Thread.sleep(1000);
                         FileMonitoringService.moveFile(file, new File(destinationDirectory, file.getName()));
                     }
                 }
@@ -87,7 +86,7 @@ public class JobService {
                 logger.info("No File Found");
             }
         } catch (JobExecutionAlreadyRunningException | JobInstanceAlreadyCompleteException |
-                JobParametersInvalidException | JobRestartException | InterruptedException e) {
+                JobParametersInvalidException | JobRestartException e) {
             logger.error(e.getMessage());
         }
         return isJobRunning;
