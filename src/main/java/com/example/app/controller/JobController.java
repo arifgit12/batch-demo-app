@@ -27,7 +27,7 @@ public class JobController {
         logger.info("Start Jobs");
 
         try {
-            CompletableFuture<JobExecution> jobExecution = jobService.runJobAsync();
+            CompletableFuture<Boolean> jobExecution = jobService.runJobAsync();
             return CompletableFuture.completedFuture(ResponseEntity.ok("Job started successfully."));
         } catch (Exception e) {
             logger.error(e.getMessage());

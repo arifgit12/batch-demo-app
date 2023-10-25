@@ -2,9 +2,13 @@ package com.example.app.config;
 
 import com.example.app.entity.Employee;
 import com.example.app.repository.EmployeeRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.job.builder.JobBuilder;
+import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.data.RepositoryItemWriter;
@@ -12,30 +16,38 @@ import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
 import org.springframework.batch.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
+import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.transaction.PlatformTransactionManager;
 
+import java.io.File;
+import java.io.IOException;
+
 @Configuration
 @EnableAsync
 public class BatchConfig {
+
+    private static final Logger logger = LoggerFactory.getLogger(BatchConfig.class);
 
     @Autowired
     private EmployeeRepository employeeRepository;
 
     @Value("${csv.file.path}")
-    private String csvResource; // Path to the CSV file
+    private String csvResource1; // Path to the CSV file
 
     @Bean
-    public FlatFileItemReader<Employee> reader() {
+    @StepScope
+    public FlatFileItemReader<Employee> reader(@Value("#{jobParameters['csvResource']}") Resource csvResource) {
         FlatFileItemReader<Employee> reader = new FlatFileItemReader<>();
-        reader.setResource(new FileSystemResource(csvResource));
+        reader.setResource(csvResource);
         reader.setLinesToSkip(1);
         reader.setLineMapper(new DefaultLineMapper<>() {{
             setLineTokenizer(new DelimitedLineTokenizer() {{
@@ -45,6 +57,7 @@ public class BatchConfig {
                 setTargetType(Employee.class);
             }});
         }});
+        reader.close();
         return reader;
     }
 
@@ -65,16 +78,33 @@ public class BatchConfig {
     public Step step(JobRepository jobRepository, PlatformTransactionManager transactionManager) {
         return new StepBuilder("csv-step",jobRepository).
                 <Employee, Employee>chunk(10,transactionManager)
-                .reader(reader())
+                .reader(reader(null))
                 .processor(processor())
                 .writer(writer())
                 .taskExecutor(taskExecutor())
                 .build();
     }
 
+//    @Bean
+//    public Step deleteFileStep() {
+//        return stepBuilderFactory.get("deleteFileStep")
+//                .tasklet((contribution, chunkContext) -> {
+//                    String selectedFile = fileSelectorService.selectFileBasedOnCriteria(); // Get the selected file
+//                    File fileToDelete = new File(selectedFile);
+//                    if (fileToDelete.exists() && fileToDelete.delete()) {
+//                        System.out.println("File deleted successfully.");
+//                    } else {
+//                        System.err.println("Failed to delete the file.");
+//                    }
+//                    return RepeatStatus.FINISHED;
+//                })
+//                .build();
+//    }
+
     @Bean
     public Job runJob(JobRepository jobRepository, PlatformTransactionManager transactionManager) {
-        return new JobBuilder("importEmployees",jobRepository)
+        return new JobBuilder("employeeJob",jobRepository)
+                .incrementer(new RunIdIncrementer())
                 .flow(step(jobRepository,transactionManager)).end().build();
     }
 
