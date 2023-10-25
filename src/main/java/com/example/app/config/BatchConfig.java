@@ -16,20 +16,15 @@ import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
 import org.springframework.batch.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
-import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.transaction.PlatformTransactionManager;
-
-import java.io.File;
-import java.io.IOException;
 
 @Configuration
 @EnableAsync
@@ -39,9 +34,6 @@ public class BatchConfig {
 
     @Autowired
     private EmployeeRepository employeeRepository;
-
-    @Value("${csv.file.path}")
-    private String csvResource1; // Path to the CSV file
 
     @Bean
     @StepScope
@@ -84,22 +76,6 @@ public class BatchConfig {
                 .taskExecutor(taskExecutor())
                 .build();
     }
-
-//    @Bean
-//    public Step deleteFileStep() {
-//        return stepBuilderFactory.get("deleteFileStep")
-//                .tasklet((contribution, chunkContext) -> {
-//                    String selectedFile = fileSelectorService.selectFileBasedOnCriteria(); // Get the selected file
-//                    File fileToDelete = new File(selectedFile);
-//                    if (fileToDelete.exists() && fileToDelete.delete()) {
-//                        System.out.println("File deleted successfully.");
-//                    } else {
-//                        System.err.println("Failed to delete the file.");
-//                    }
-//                    return RepeatStatus.FINISHED;
-//                })
-//                .build();
-//    }
 
     @Bean
     public Job runJob(JobRepository jobRepository, PlatformTransactionManager transactionManager) {
