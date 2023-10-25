@@ -13,12 +13,19 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.time.LocalDateTime;
 import java.util.concurrent.CompletableFuture;
 
 @Service
 public class JobService {
     private static final Logger logger = LoggerFactory.getLogger(JobService.class);
+
+    @Value("${source.directory}")
+    private String sourceDirectory;
+
+    @Value("${destination.directory}")
+    private String destinationDirectory;
 
     @Autowired
     private JobLauncher jobLauncher;
@@ -32,31 +39,58 @@ public class JobService {
     @Value("${scheduler.enabled}")
     private boolean schedulerEnabled;
 
-    @Scheduled(fixedDelay = 10000) // Run every 10 seconds
+    private volatile boolean isJobRunning = false;
+
+    // Run every 10 seconds
+    @Scheduled(fixedDelay = 20000)
     public void processFiles() {
-        if (schedulerEnabled) {
+        if (schedulerEnabled && !isJobRunning) {
             logger.info("Starting to process: {}",  LocalDateTime.now());
+            startJob();
         }
     }
 
     @Async
-    public CompletableFuture<JobExecution> runJobAsync() {
+    public CompletableFuture<Boolean> runJobAsync() {
         try {
-            Long executionId = getRunningJob();
-            if (executionId == null) {
-                JobParameters jobParameters = new JobParametersBuilder()
-                        .addLong("startAt", System.currentTimeMillis()).toJobParameters();
-                JobExecution jobExecution = jobLauncher.run(job, jobParameters);
-                return CompletableFuture.completedFuture(jobExecution);
-            }else {
-                return CompletableFuture.completedFuture(null);
-            }
-        } catch (JobExecutionAlreadyRunningException | JobInstanceAlreadyCompleteException |
-                JobParametersInvalidException | JobRestartException e) {
-            // Handle exceptions as needed
-            e.printStackTrace();
+            boolean jobStarted = startJob();
+            return CompletableFuture.completedFuture(jobStarted);
+        } catch (Exception e) {
+            logger.error(e.getMessage());
             return CompletableFuture.failedFuture(e);
         }
+    }
+
+    public boolean startJob(){
+        isJobRunning = false;
+        try {
+            logger.info("Source Directory " + sourceDirectory);
+            File file = FileMonitoringService.getFile(sourceDirectory);
+            if (file != null) {
+                logger.info("File : {}", file.getName());
+                Long executionId = getRunningJob();
+                if (executionId == null) {
+                    JobParameters jobParameters = new JobParametersBuilder()
+                            .addString("csvResource", "file:" + file.getAbsolutePath())
+                            .addLong("time", System.currentTimeMillis())
+                            .toJobParameters();
+
+                    JobExecution jobExecution = jobLauncher.run(job, jobParameters);
+                    if (jobExecution.isRunning()) {
+                        isJobRunning = true;
+                    } else {
+                        Thread.sleep(1000);
+                        FileMonitoringService.moveFile(file, new File(destinationDirectory, file.getName()));
+                    }
+                }
+            } else  {
+                logger.info("No File Found");
+            }
+        } catch (JobExecutionAlreadyRunningException | JobInstanceAlreadyCompleteException |
+                JobParametersInvalidException | JobRestartException | InterruptedException e) {
+            logger.error(e.getMessage());
+        }
+        return isJobRunning;
     }
 
     public boolean stopJob(){
@@ -67,6 +101,7 @@ public class JobService {
                 jobOperator.stop(executionId);
                 logger.info("Stopped job with name: {}", job.getName());
                 isJobStopped = true;
+                isJobRunning = false;
             } else {
                 logger.info("No running job found with name found");
             }
