@@ -1,4 +1,4 @@
-package com.example.app.service;
+package com.example.app.util;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,9 +9,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
-public class FileMonitoringService {
+public class FileHandler {
 
-    private static final Logger logger = LoggerFactory.getLogger(FileMonitoringService.class);
+    private static final Logger logger = LoggerFactory.getLogger(FileHandler.class);
 
     public static File getFile(String sourceDirectory) {
         logger.info("Directory Name " + sourceDirectory);

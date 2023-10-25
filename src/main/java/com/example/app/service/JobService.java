@@ -1,5 +1,6 @@
 package com.example.app.service;
 
+import com.example.app.util.FileHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.*;
@@ -65,7 +66,7 @@ public class JobService {
         isJobRunning = false;
         try {
             logger.info("Source Directory {}", sourceDirectory);
-            File file = FileMonitoringService.getFile(sourceDirectory);
+            File file = FileHandler.getFile(sourceDirectory);
             if (file != null) {
                 logger.info("File : {}", file.getName());
                 Long executionId = getRunningJob();
@@ -79,7 +80,7 @@ public class JobService {
                     if (jobExecution.isRunning()) {
                         isJobRunning = true;
                     } else {
-                        FileMonitoringService.moveFile(file, new File(destinationDirectory, file.getName()));
+                        FileHandler.moveFile(file, new File(destinationDirectory, file.getName()));
                     }
                 }
             } else  {
