@@ -8,8 +8,12 @@ import org.springframework.batch.core.repository.JobExecutionAlreadyRunningExcep
 import org.springframework.batch.core.repository.JobInstanceAlreadyCompleteException;
 import org.springframework.batch.core.repository.JobRestartException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
 import java.util.concurrent.CompletableFuture;
 
 @Service
@@ -24,6 +28,16 @@ public class JobService {
 
     @Autowired
     private JobOperator jobOperator;
+
+    @Value("${scheduler.enabled}")
+    private boolean schedulerEnabled;
+
+    @Scheduled(fixedDelay = 10000) // Run every 10 seconds
+    public void processFiles() {
+        if (schedulerEnabled) {
+            logger.info("Starting to process: {}",  LocalDateTime.now());
+        }
+    }
 
     @Async
     public CompletableFuture<JobExecution> runJobAsync() {
@@ -45,6 +59,24 @@ public class JobService {
         }
     }
 
+    public boolean stopJob(){
+        boolean isJobStopped = false;
+        try {
+            Long executionId = getRunningJob();
+            if (executionId != null) {
+                jobOperator.stop(executionId);
+                logger.info("Stopped job with name: {}", job.getName());
+                isJobStopped = true;
+            } else {
+                logger.info("No running job found with name found");
+            }
+        } catch (NullPointerException | NoSuchJobExecutionException |
+                JobExecutionNotRunningException e) {
+            logger.error(e.getMessage());
+        }
+        return isJobStopped;
+    }
+
     private Long getRunningJob() {
         try {
             return jobOperator.getRunningExecutions(job.getName())
@@ -55,24 +87,5 @@ public class JobService {
             return null;
         }
 
-    }
-
-    public boolean stopJob(){
-        boolean isJobStopped = false;
-        try {
-            Long executionId = getRunningJob();
-            if (executionId != null) {
-                jobOperator.stop(executionId);
-                logger.info("Stopped job with name: " + job.getName());
-                isJobStopped = true;
-            } else {
-                logger.info("No running job found with name found");
-            }
-        } catch (NullPointerException | NoSuchJobExecutionException |
-                JobExecutionNotRunningException e) {
-            //e.printStackTrace();
-            logger.error(e.getMessage());
-        }
-        return isJobStopped;
     }
 }
