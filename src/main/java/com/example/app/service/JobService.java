@@ -45,7 +45,7 @@ public class JobService {
     // Run every 10 seconds
     @Scheduled(fixedDelay = 10000)
     public void processFiles() {
-        if (schedulerEnabled && !isJobRunning) {
+        if (schedulerEnabled && getRunningJob() == null) {
             logger.info("Starting to process: {}",  LocalDateTime.now());
             startJob();
         }
@@ -63,7 +63,6 @@ public class JobService {
     }
 
     public boolean startJob(){
-        isJobRunning = false;
         try {
             logger.info("Source Directory {}", sourceDirectory);
             File file = FileHandler.getFile(sourceDirectory);
@@ -77,11 +76,14 @@ public class JobService {
                             .toJobParameters();
 
                     JobExecution jobExecution = jobLauncher.run(job, jobParameters);
-                    if (jobExecution.isRunning()) {
+                    if (jobExecution.isRunning())
                         isJobRunning = true;
-                    } else {
-                        FileHandler.moveFile(file, new File(destinationDirectory, file.getName()));
-                    }
+                    FileHandler.moveFile(file, new File(destinationDirectory, file.getName()));
+
+                    if (jobExecution.isStopping())
+                        isJobRunning=false;
+                } else {
+                    logger.info("Job is Already Running ProcessId: {}", executionId);
                 }
             } else  {
                 logger.info("No File Found");
