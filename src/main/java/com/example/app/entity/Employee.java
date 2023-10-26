@@ -1,9 +1,7 @@
 package com.example.app.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Entity
 @Table(name = "EMPLOYEES")
@@ -11,6 +9,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class Employee {
+
+    @Setter(AccessLevel.NONE)
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "EMPLOYEE_ID")
@@ -21,8 +21,4 @@ public class Employee {
     private String lastName;
     @Column(name = "EMAIL")
     private String email;
-
-    public Long getId() {
-        return id;
-    }
 }

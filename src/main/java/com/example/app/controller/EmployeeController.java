@@ -43,7 +43,6 @@ public class EmployeeController {
     public void updateEmployee(@PathVariable Long id, @RequestBody Employee employee) {
         Employee existingEmployee = employeeService.getEmployeeById(id);
         if (existingEmployee != null) {
-            employee.setId(id);
             employeeService.updateEmployee(employee);
         }
     }
