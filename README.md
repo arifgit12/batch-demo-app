@@ -5,4 +5,7 @@ Processing large Amounts of Data and Controlling
 3. Application.properties: destination.directory
 4. Start Jobs: http://localhost:8080/jobs/start
 5. Stop Jobs: http://localhost:8080/jobs/stop
-6. 
+6. Status Jobs: http://localhost:8080/jobs/status
+7. If the Running Process is Stopped Manually, then it is required to start Manually
+8. If a running process is stopped, then also it will move the current file executing
+9. 
