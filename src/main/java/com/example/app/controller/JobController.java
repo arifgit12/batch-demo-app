@@ -6,12 +6,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.concurrent.CompletableFuture;
-
 @RestController
 @RequestMapping("/jobs")
 public class JobController {
@@ -21,16 +21,27 @@ public class JobController {
     @Autowired
     private JobService jobService;
 
+    @Async
     @PostMapping("/start")
     public CompletableFuture<ResponseEntity<String>> startJob() {
         logger.info("Start Jobs");
 
         try {
-            CompletableFuture<Boolean> jobExecution = jobService.runJobAsync();
+            CompletableFuture<Boolean> jobStatus = jobService.runJobAsync();
+            //boolean success = jobStatus.join();
+
             return CompletableFuture.completedFuture(ResponseEntity.ok("Job started successfully."));
+
         } catch (Exception e) {
-            logger.error(e.getMessage());
-            ResponseEntity<String> result = ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Job did not start successfully: " + e.getMessage());
+            Throwable cause = e.getCause();
+
+            if (cause instanceof InterruptedException) {
+                // Preserve the interrupt status and possibly handle it here.
+                Thread.currentThread().interrupt();
+            }
+            logger.error(cause.getMessage());
+            ResponseEntity<String> result = ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Job did not start successfully: " + cause.getMessage());
             return CompletableFuture.completedFuture(result);
         }
     }
@@ -42,6 +53,12 @@ public class JobController {
         } else {
             return ResponseEntity.ok("Job Failed to Stop.");
         }
+    }
+
+    @PostMapping("/status")
+    public ResponseEntity<String> statusJob() {
+        String status = jobService.getJobStatus();
+        return ResponseEntity.ok(status);
     }
 
 }

@@ -40,12 +40,11 @@ public class JobService {
     @Value("${scheduler.enabled}")
     private boolean schedulerEnabled;
 
-    private volatile boolean isJobRunning = false;
-
+    private volatile boolean isStopManually = false;
     // Run every 10 seconds
     @Scheduled(fixedDelay = 10000)
     public void processFiles() {
-        if (schedulerEnabled && getRunningJob() == null) {
+        if (schedulerEnabled && !isStopManually) {
             logger.info("Starting to process: {}",  LocalDateTime.now());
             startJob();
         }
@@ -54,15 +53,21 @@ public class JobService {
     @Async
     public CompletableFuture<Boolean> runJobAsync() {
         try {
-            boolean jobStarted = startJob();
-            return CompletableFuture.completedFuture(jobStarted);
+            startJob();
+            Long processId = getRunningJob();
+            if (processId != null) {
+                isStopManually = false;
+                return CompletableFuture.completedFuture(true);
+            } else {
+                return CompletableFuture.completedFuture(false);
+            }
         } catch (Exception e) {
             logger.error(e.getMessage());
             return CompletableFuture.failedFuture(e);
         }
     }
 
-    public boolean startJob(){
+    public void startJob(){
         try {
             logger.info("Source Directory {}", sourceDirectory);
             File file = FileHandler.getFile(sourceDirectory);
@@ -76,12 +81,9 @@ public class JobService {
                             .toJobParameters();
 
                     JobExecution jobExecution = jobLauncher.run(job, jobParameters);
-                    if (jobExecution.isRunning())
-                        isJobRunning = true;
+                    logger.info("Job Status: {}", jobExecution.getStatus());
+                    //if (jobExecution.isStopping() || jobExecution.getExitStatus() == ExitStatus.COMPLETED)
                     FileHandler.moveFile(file, new File(destinationDirectory, file.getName()));
-
-                    if (jobExecution.isStopping())
-                        isJobRunning=false;
                 } else {
                     logger.info("Job is Already Running ProcessId: {}", executionId);
                 }
@@ -92,18 +94,16 @@ public class JobService {
                 JobParametersInvalidException | JobRestartException e) {
             logger.error(e.getMessage());
         }
-        return isJobRunning;
     }
 
     public boolean stopJob(){
-        boolean isJobStopped = false;
         try {
             Long executionId = getRunningJob();
             if (executionId != null) {
                 jobOperator.stop(executionId);
                 logger.info("Stopped job with name: {}", job.getName());
-                isJobStopped = true;
-                isJobRunning = false;
+                isStopManually = true;
+                return true;
             } else {
                 logger.info("No running job found with name found");
             }
@@ -111,7 +111,15 @@ public class JobService {
                 JobExecutionNotRunningException e) {
             logger.error(e.getMessage());
         }
-        return isJobStopped;
+        return false;
+    }
+
+    public String getJobStatus() {
+        Long status = getRunningJob();
+        if (status == null)
+            return "Job Not Running";
+        else
+            return "Job: " + status + " is running";
     }
 
     private Long getRunningJob() {
