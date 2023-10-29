@@ -53,10 +53,10 @@ public class JobService {
     @Async
     public CompletableFuture<Boolean> runJobAsync() {
         try {
+            isStopManually = false;
             startJob();
             Long processId = getRunningJob();
             if (processId != null) {
-                isStopManually = false;
                 return CompletableFuture.completedFuture(true);
             } else {
                 return CompletableFuture.completedFuture(false);
@@ -67,6 +67,7 @@ public class JobService {
         }
     }
 
+    @Async
     public void startJob(){
         try {
             logger.info("Source Directory {}", sourceDirectory);
