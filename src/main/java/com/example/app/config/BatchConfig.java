@@ -6,7 +6,6 @@ import com.example.app.batch.ExceptionSkipPolicy;
 import com.example.app.listener.JobCompletionNotificationListener;
 import com.example.app.entity.Employee;
 import com.example.app.listener.StepSkipListener;
-import com.example.app.repository.EmployeeRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.Job;
@@ -18,7 +17,6 @@ import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.core.step.skip.SkipPolicy;
-import org.springframework.batch.item.data.RepositoryItemWriter;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.LineMapper;
 import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
@@ -39,9 +37,6 @@ import java.io.File;
 public class BatchConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(BatchConfig.class);
-
-    @Autowired
-    private EmployeeRepository employeeRepository;
 
     @Autowired
     private EmployeeItemWriter employeeItemWriter;
@@ -81,14 +76,6 @@ public class BatchConfig {
     }
 
     @Bean
-    public RepositoryItemWriter<Employee> writer() {
-        RepositoryItemWriter<Employee> writer = new RepositoryItemWriter<>();
-        writer.setRepository(employeeRepository);
-        writer.setMethodName("save");
-        return writer;
-    }
-
-    @Bean
     public Step step(JobRepository jobRepository, PlatformTransactionManager transactionManager) {
 
         return new StepBuilder("csv-step",jobRepository).
@@ -96,9 +83,9 @@ public class BatchConfig {
                 .reader(reader(null))
                 .processor(processor())
                 .writer(employeeItemWriter)
-                .faultTolerant()
-                .listener(skipListener())
-                .skipPolicy(skipPolicy())
+                //.faultTolerant()
+                //.listener(skipListener())
+                //.skipPolicy(skipPolicy())
                 .taskExecutor(taskExecutor())
                 .build();
     }
