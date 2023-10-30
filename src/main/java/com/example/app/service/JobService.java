@@ -32,15 +32,15 @@ public class JobService {
     private JobLauncher jobLauncher;
 
     @Autowired
-    private Job job;
+    private JobOperator jobOperator;
 
     @Autowired
-    private JobOperator jobOperator;
+    private Job job;
 
     @Value("${scheduler.enabled}")
     private boolean schedulerEnabled;
-
     private volatile boolean isStopManually = false;
+
     // Run every 10 seconds
     @Scheduled(fixedDelay = 10000)
     public void processFiles() {
@@ -53,10 +53,10 @@ public class JobService {
     @Async
     public CompletableFuture<Boolean> runJobAsync() {
         try {
+            isStopManually = false;
             startJob();
             Long processId = getRunningJob();
             if (processId != null) {
-                isStopManually = false;
                 return CompletableFuture.completedFuture(true);
             } else {
                 return CompletableFuture.completedFuture(false);
@@ -67,6 +67,7 @@ public class JobService {
         }
     }
 
+    @Async
     public void startJob(){
         try {
             logger.info("Source Directory {}", sourceDirectory);
@@ -76,14 +77,12 @@ public class JobService {
                 Long executionId = getRunningJob();
                 if (executionId == null) {
                     JobParameters jobParameters = new JobParametersBuilder()
-                            .addString("csvResource", "file:" + file.getAbsolutePath())
-                            .addLong("time", System.currentTimeMillis())
+                            .addString("fullPathFileName", file.getAbsolutePath())
+                            .addString("destinationDirectory", destinationDirectory)
+                            .addLong("startAt", System.currentTimeMillis())
                             .toJobParameters();
 
                     JobExecution jobExecution = jobLauncher.run(job, jobParameters);
-                    logger.info("Job Status: {}", jobExecution.getStatus());
-                    //if (jobExecution.isStopping() || jobExecution.getExitStatus() == ExitStatus.COMPLETED)
-                    FileHandler.moveFile(file, new File(destinationDirectory, file.getName()));
                 } else {
                     logger.info("Job is Already Running ProcessId: {}", executionId);
                 }
