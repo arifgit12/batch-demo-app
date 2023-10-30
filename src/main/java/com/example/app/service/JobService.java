@@ -132,4 +132,14 @@ public class JobService {
         }
 
     }
+
+    public void enableScheduler() {
+        logger.info("Enabling the Scheduler");
+        schedulerEnabled = true;
+    }
+
+    public void disableScheduler() {
+        logger.info("Disabling the Scheduler");
+        schedulerEnabled = false;
+    }
 }
