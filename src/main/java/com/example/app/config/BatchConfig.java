@@ -4,8 +4,6 @@ import com.example.app.batch.EmployeeItemWriter;
 import com.example.app.batch.EmployeeProcessor;
 import com.example.app.listener.JobCompletionNotificationListener;
 import com.example.app.entity.Employee;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.StepScope;
@@ -32,20 +30,22 @@ import java.io.File;
 @Configuration
 public class BatchConfig {
 
-    private static final Logger logger = LoggerFactory.getLogger(BatchConfig.class);
-
     @Autowired
     private EmployeeItemWriter employeeItemWriter;
 
     @Bean
     @StepScope
     public FlatFileItemReader<Employee> reader(@Value("#{jobParameters['fullPathFileName']}") String pathToFile) {
+
+        if(pathToFile == null || pathToFile.isEmpty())
+            return new FlatFileItemReader<>();
+
         FlatFileItemReader<Employee> flatFileItemReader  = new FlatFileItemReader<>();
         flatFileItemReader.setResource(new FileSystemResource(new File(pathToFile)));
         flatFileItemReader.setName("CSV-Reader");
-        flatFileItemReader .setLinesToSkip(1);
-        flatFileItemReader .setLineMapper(lineMapper());
-        flatFileItemReader .close();
+        flatFileItemReader.setLinesToSkip(1);
+        flatFileItemReader.setLineMapper(lineMapper());
+        flatFileItemReader.close();
         return flatFileItemReader;
     }
 
