@@ -10,4 +10,5 @@ Processing large Amounts of Data and Controlling
 8. If a running process is stopped, then also it will move the current file executing
 9. Disable Scheduler: http://localhost:8080/scheduler/disable
 10. Enable Scheduler: http://localhost:8080/scheduler/enable
-11. If the scheduler is disabled,  Start Jobs will execute only on the job 
+11. If the scheduler is disabled,  Start Jobs will execute only on the job
+12. todo
