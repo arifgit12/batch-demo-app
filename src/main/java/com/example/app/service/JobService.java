@@ -37,6 +37,9 @@ public class JobService {
     @Autowired
     private Job job;
 
+    @Autowired
+    private NotificationService notificationService;
+
     @Value("${scheduler.enabled}")
     private boolean schedulerEnabled;
     private volatile boolean isStopManually = false;
@@ -106,8 +109,8 @@ public class JobService {
             } else {
                 logger.info("No running job found with name found");
             }
-        } catch (NullPointerException | NoSuchJobExecutionException |
-                JobExecutionNotRunningException e) {
+        } catch (NullPointerException | NoSuchJobExecutionException
+                | JobExecutionNotRunningException e) {
             logger.error(e.getMessage());
         }
         return false;
@@ -138,8 +141,9 @@ public class JobService {
         schedulerEnabled = true;
     }
 
-    public void disableScheduler() {
+    public void disableScheduler() throws InterruptedException {
         logger.info("Disabling the Scheduler");
+        notificationService.notifyUser("Scheduler Disabled");
         schedulerEnabled = false;
     }
 }
