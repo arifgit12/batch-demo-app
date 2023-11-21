@@ -24,6 +24,7 @@ public class StepSkipListener implements SkipListener<Employee, Number> {
     @SneakyThrows
     @Override // item processor
     public void onSkipInProcess(Employee employee, Throwable throwable) {
+
         logger.info("Item {}  was skipped due to the exception  {}",
                 new ObjectMapper().writeValueAsString(employee),
                 throwable.getMessage());

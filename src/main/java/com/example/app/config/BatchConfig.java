@@ -1,19 +1,20 @@
 package com.example.app.config;
 
-import com.example.app.batch.EmployeeItemWriter;
-import com.example.app.batch.EmployeeProcessor;
+import com.example.app.batch.*;
 import com.example.app.listener.JobCompletionNotificationListener;
 import com.example.app.entity.Employee;
+import com.example.app.listener.StepSkipListener;
 import org.springframework.batch.core.Job;
+import org.springframework.batch.core.SkipListener;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
+import org.springframework.batch.core.step.skip.SkipPolicy;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.LineMapper;
-import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
 import org.springframework.batch.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import java.io.File;
@@ -32,6 +34,8 @@ public class BatchConfig {
 
     @Autowired
     private EmployeeItemWriter employeeItemWriter;
+
+    public static String[] tokens = new String[] {"name", "lastName", "email" };
 
     @Bean
     @StepScope
@@ -55,13 +59,10 @@ public class BatchConfig {
         DelimitedLineTokenizer lineTokenizer = new DelimitedLineTokenizer();
         lineTokenizer.setDelimiter(",");
         lineTokenizer.setStrict(false);
-        lineTokenizer.setNames("name", "lastName", "email");
-
-        BeanWrapperFieldSetMapper<Employee> fieldSetMapper = new BeanWrapperFieldSetMapper<>();
-        fieldSetMapper.setTargetType(Employee.class);
+        lineTokenizer.setNames(tokens);
 
         lineMapper.setLineTokenizer(lineTokenizer);
-        lineMapper.setFieldSetMapper(fieldSetMapper);
+        lineMapper.setFieldSetMapper(new EmloyeeFieldSetMapper());
 
         return lineMapper;
     }
@@ -79,6 +80,11 @@ public class BatchConfig {
                 .reader(reader(null))
                 .processor(processor())
                 .writer(employeeItemWriter)
+                .faultTolerant()
+                .skip(EmployeeProcessingException.class)
+                //.skipLimit(2)
+                .listener(skipListener())
+                .skipPolicy(skipPolicy())
                 .taskExecutor(taskExecutor())
                 .build();
     }
@@ -94,9 +100,27 @@ public class BatchConfig {
     }
 
     @Bean
-    public TaskExecutor taskExecutor() {
+    public SkipPolicy skipPolicy(){
+        return new ExceptionSkipPolicy();
+    }
+
+    @Bean
+    public SkipListener skipListener(){
+        return new StepSkipListener();
+    }
+
+    @Bean
+    public TaskExecutor simpleTaskExecutor() {
         SimpleAsyncTaskExecutor asyncTaskExecutor = new SimpleAsyncTaskExecutor();
         asyncTaskExecutor.setConcurrencyLimit(10);
         return asyncTaskExecutor;
+    }
+
+    @Bean
+    public TaskExecutor taskExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(10);
+        return executor;
     }
 }

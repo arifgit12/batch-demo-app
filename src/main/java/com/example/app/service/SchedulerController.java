@@ -20,7 +20,7 @@ public class SchedulerController {
     }
 
     @PostMapping("/disable")
-    public ResponseEntity<String> disableScheduler() {
+    public ResponseEntity<String> disableScheduler() throws InterruptedException {
         jobService.disableScheduler();
         return ResponseEntity.ok("Schedular Disabled Successfully");
     }
