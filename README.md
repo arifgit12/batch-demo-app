@@ -11,4 +11,5 @@ Processing large Amounts of Data and Controlling
 9. Disable Scheduler: http://localhost:8080/scheduler/disable
 10. Enable Scheduler: http://localhost:8080/scheduler/enable
 11. If the scheduler is disabled,  Start Jobs will execute only on the job
-12. todo
+12. Import File: http://localhost:8080/jobs/importData
+13. todo
