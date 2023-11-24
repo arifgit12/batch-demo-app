@@ -65,8 +65,27 @@ public class JobController {
     }
 
     @PostMapping(path = "/importData")
-    public ResponseEntity<Boolean> importFile(@RequestParam("file") MultipartFile multipartFile) {
-        boolean copiedSuccessfull = jobService.copyFileToSource(multipartFile);
-        return ResponseEntity.ok(copiedSuccessfull);
+    public ResponseEntity<String> importFile(@RequestParam("file") MultipartFile multipartFile) {
+
+        if (!isValidFileType(multipartFile)) {
+            return ResponseEntity.badRequest().body("Invalid File");
+        }
+
+        boolean copiedSuccessful = jobService.copyFileToSource(multipartFile);
+        if (copiedSuccessful)
+            return ResponseEntity.ok("File upload successfully");
+        else
+            return ResponseEntity.ok("File upload Failed");
+    }
+
+    private boolean isValidFileType(MultipartFile file) {
+
+        String fileName = file.getOriginalFilename();
+        if (fileName != null) {
+            String fileExtension = fileName.substring(fileName.lastIndexOf('.') + 1)
+                                            .toLowerCase();
+            return "csv".equals(fileExtension) || "xls".equals(fileExtension) || "xlsx".equals(fileExtension);
+        }
+        return false;
     }
 }
