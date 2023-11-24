@@ -1,5 +1,6 @@
-package com.example.app.service;
+package com.example.app.controller;
 
+import com.example.app.service.JobService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
