@@ -13,8 +13,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.concurrent.CompletableFuture;
 
@@ -145,5 +147,20 @@ public class JobService {
         logger.info("Disabling the Scheduler");
         notificationService.notifyUser("Scheduler Disabled");
         schedulerEnabled = false;
+    }
+
+    public boolean copyFileToSource(MultipartFile multipartFile) {
+        boolean isCopied = false;
+        try
+        {
+            String originalFileName = multipartFile.getOriginalFilename();
+            File fileToImport = new File(sourceDirectory + "\\" +
+                    System.currentTimeMillis() + originalFileName);
+            multipartFile.transferTo(fileToImport);
+            isCopied = true;
+        }catch (IOException ex) {
+            logger.error(ex.getMessage());
+        }
+        return isCopied;
     }
 }
